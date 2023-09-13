@@ -1,0 +1,396 @@
+%Vertical acceleration
+
+clc
+clear all
+clearvars
+close all
+
+%Declaration of constants and variables
+Csfl=3178;   %Left front wheel damping coefficient 
+Csfr=3178;   %Right front wheel damping coefficient
+Csr=3826;    %Rear wheel damping coefficient
+r=1.246;     %track in meters
+T2=r/2;
+a=.812; %meters
+b=0.66; %meters
+l=a+b; %meters
+ms=129;  %mass in kg 
+Ksfl=21500;
+Ksfr=21500;
+Ksr=19900;
+Ix=24.6;  %24.6 kg*m2 = 241.33 N*m2
+mufl=20;%kg
+mufr=20;%kg
+mur=20;%kg
+M=ms+mufl+mufr+mur; %total mass
+gravedad=9.81;
+H=0.438; %CG height
+ur=0.017; %rolling coefficient
+Tfl=0; %torque applied to left front wheel 
+Tfr=0; %torque applied to right front wheel 
+Tr=0; %torque applied to rear wheel
+Lfl=0;
+Lfr=0;
+Lr=0;
+rw=0.21; %wheel radius
+delta=0; %slip angle
+Ktr=230000;
+Ktfl=230000;
+Ktfr=230000;
+Iy=57.2;  %57.2 kg*m2 = 561.13 N*m2
+Tfinal=10;%second
+d=.1; %height of the bump
+lamda=1;
+v=20/3.6; %speed in m/s
+Tstep=0.001;
+T = 0:Tstep:Tfinal; % simulation time = 10 seconds
+
+
+%terrain simulation, bump
+L1=0.1;
+L2=0.1;
+L3=0.1;
+H=0.1;
+
+yfl=(T<=L1/v).*(v*T)+(T>L1/v).*(H)+(T>(L1+L2)/v).*(-v*T+L1+L2);
+yfr=(T<=L1/v).*(v*T)+(T>L1/v).*(H)+(T>(L1+L2)/v).*(-v*T+L1+L2);
+yr=(T<=l/v).*(0)+(T>(l/v)).*(v*T-l)+(T>(l+L1)/v).*(-v*T+H+l)+(T>(l+L1+L2)/v).*(-v*T+l+L1+L2);
+
+yfl(((((L1+L2+L3)/v)/Tstep)):end)=0;
+yfr(((((L1+L2+L3)/v)/Tstep)):end)=0;
+yr(((((l+L1+L2+L3)/v)/Tstep)):end)=0;
+
+% Coefficients matrix A
+a11=(-Csfl-Csfr-Csr)/ms;
+a12=((-T2*Csfl)+(T2*Csfr))/ms;
+a13=((a*Csfl)+(a*Csfr)-(b*Csr))/ms;
+a14=Csfl/ms;
+a15=Csfr/ms;
+a16=Csr/ms;
+a17=(-Ksfl-Ksfr-Ksr)/ms;
+a18=((-T2*Ksfl)+(T2*Ksfr))/ms;
+a19=((a*Ksfl)+(a*Ksfr)-(b*Ksr))/ms;
+a110=Ksfl/ms;
+a111=Ksfr/ms;
+a112=Ksr/ms;
+a21=((-Csfl*T2)+(Csfr*T2))/Ix;
+a22=((-Csfl*(T2^2))+(Csfr*(T2^2)))/Ix;
+a23=((Csfl*T2*a)-(Csfr*T2*a))/Ix;
+a24=Csfl*T2/Ix;
+a25=(-Csfr*T2)/Ix;
+a26=0;
+a27=((-Ksfl*T2)+(Ksfr*T2))/Ix;
+a28=((-Ksfl*(T2^2))+(Ksfr*(T2^2)))/Ix;
+a29=((Ksfl*T2*a)-(Ksfr*T2*a))/Ix;
+a210=Ksfl*T2/Ix;
+a211=-Ksfr*T2/Ix;
+a212=0;
+a31=((Csfl*a)+(Csfr*a)-(Csr*b))/Iy;
+a32=((Csfl*a*T2)-(Csfr*a*T2))/Iy;
+a33=((-Csfl*(a^2))-(Csr*(b^2))-(Csfr*(a^2)))/Iy;
+a34=(-Csfl*a)/Iy;
+a35=-Csfr*a/Iy;
+a36=Csr*b/Iy;
+a37=(Ksfl*a-Ksr*b+Ksfr*a)/Iy;
+a38=(Ksfl*a*T2-Ksfr*a*T2)/Iy;
+a39=((-Ksfl*(a^2))-(Ksr*(b^2))-Ksfr*(a^2))/Iy;
+a310=-Ksfl*a/Iy;
+a311=-Ksfr*a/Iy;
+a312=Ksr*b/Iy;
+a41=Csfl/mufl;
+a42=Csfl*T2/mufl;
+a43=-Csfl*a/mufl;
+a44=-Csfl/mufl;
+a45=0;
+a46=0;
+a47=Ksfl/mufl;
+a48=Ksfl*T2/mufl;
+a49=-Ksfl*a/mufl;
+a410=(-Ksfl-Ktfl)/mufl;
+a411=0;
+a412=0;
+a51=Csfr/mufr;
+a52=-Csfr*T2/mufr;
+a53=-Csfr*a/mufr;
+a54=0;
+a55=-Csfr/mufr;
+a56=0;
+a57=Ksfr/mufr;
+a58=-Ksfr*T2/mufr;
+a59=-Ksfr*a/mufr;
+a510=0;
+a511=(-Ksfr-Ktfr)/mufr;
+a512=0;
+a61=Csr/mur;
+a62=0;
+a63=Csr*b/mur;
+a64=0;
+a65=0;
+a66=-Csr/mur;
+a67=Ksr/mur;
+a68=0;
+a69=Ksr*b/mur;
+a610=0;
+a611=0;
+a612=(-Ksr-Ktr)/mur;
+a71=1;a72=0;a73=0;a74=0;a75=0;a76=0;a77=0;a78=0;a79=0;a710=0;a711=0;a712=0;
+a81=0;a82=1;a83=0;a84=0;a85=0;a86=0;a87=0;a88=0;a89=0;a810=0;a811=0;a812=0;
+a91=0;a92=0;a93=1;a94=0;a95=0;a96=0;a97=0;a98=0;a99=0;a910=0;a911=0;a912=0;
+a101=0;a102=0;a103=0;a104=1;a105=0;a106=0;a107=0;a108=0;a109=0;a1010=0;a1011=0;a1012=0;
+aa111=0;aa112=0;aa113=0;aa114=0;aa115=1;aa116=0;aa117=0;aa118=0;aa119=0;aa1110=0;aa1111=0;aa1112=0;
+aa121=0;aa122=0;aa123=0;aa124=0;aa125=0;aa126=1;aa127=0;aa128=0;aa129=0;aa1210=0;aa1211=0;aa1212=0;
+A=[a11 a12 a13 a14 a15 a16 a17 a18 a19 a110 a111 a112;
+a21 a22 a23 a24 a25 a26 a27 a28 a29 a210 a211 a212;
+a31 a32 a33 a34 a35 a36 a37 a38 a39 a310 a311 a312;
+a41 a42 a43 a44 a45 a46 a47 a48 a49 a410 a411 a412;
+a51 a52 a53 a54 a55 a56 a57 a58 a59 a510 a511 a512;
+a61 a62 a63 a64 a65 a66 a67 a68 a69 a610 a611 a612;
+a71 a72 a73 a74 a75 a76 a77 a78 a79 a710 a711 a712;
+a81 a82 a83 a84 a85 a86 a87 a88 a89 a810 a811 a812;
+a91 a92 a93 a94 a95 a96 a97 a98 a99 a910 a911 a912;
+a101 a102 a103 a104 a105 a106 a107 a108 a109 a1010 a1011 a1012;
+aa111 aa112 aa113 aa114 aa115 aa116 aa117 aa118 aa119 aa1110 aa1111 aa1112;
+aa121 aa122 aa123 aa124 aa125 aa126 aa127 aa128 aa129 aa1210 aa1211 aa1212];
+% Coefficients matrix B
+b11=0;b12=0;b13=0;
+b21=0;b22=0;b23=0;
+b31=0;b32=0;b33=0;
+b41=Ktfl/mufl;b42=0;b43=0;
+b51=0;b52=Ktfr/mufr;b53=0;
+b61=0;b62=0;b63=Ktr/mur;
+b71=0;b72=0;b73=0;
+b81=0;b82=0;b83=0;
+b91=0;b92=0;b93=0;
+b101=0;b102=0;b103=0;
+b111=0;b112=0;b113=0;
+b121=0;b122=0;b123=0;
+B=[b11 ,b12, b13;
+b21 ,b22, b23;
+b31 ,b32, b33;
+b41 ,b42, b43;
+b51 ,b52, b53;
+b61 ,b62, b63;
+b71 ,b72, b73;
+b81 ,b82, b83;
+b91 ,b92, b93;
+b102 ,b102, b103;
+b111 ,b112, b113;
+b121 ,b122, b123];
+
+C = eye(12);
+D= zeros(12,3);
+U=[yfl;yfr;yr];
+sys=ss(A,B,C,D);
+[y,T]=lsim(sys, U, T);
+
+t1=T(1:10000);
+t2=T(1:9999);
+
+h=y(:,7);
+
+
+for i=2 : 10000
+g(i)=(h(i+1)-h(i-1))/(2*Tstep);
+end
+f=g(:);
+
+
+for i=2 : 9999
+j(i)=(f(i+1)-f(i-1))/(2*Tstep);
+end
+O=j(:);
+
+
+for i=1:10000
+betaderivada(i)=y(i,3);
+end
+
+
+% BETA (pitch)
+BETA=y(:,9);
+
+% PHI (roll)
+PHI=y(:,8);
+
+% Xufl
+Xufl=y(:,10);
+
+% Xufr
+Xufr=y(:,11);
+
+% Xur
+Xur=y(:,12);
+
+%Graphics
+figure(1),plot(T, yfl,'-k.', 'MarkerSize', 1, 'LineWidth', 1.5), grid on;
+xlim([0 1]) 
+hold on;
+plot(T, yfr,'-b.', 'MarkerSize', 1, 'LineWidth', 1.5), grid on;
+hold on;
+plot(T, yr,'-r.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Entradas - yfl (black) - yfr (blue) - yr (red)'), grid on;
+hold off;
+
+%Gráfica Xufl
+figure(2),plot(T,Xufl,'-r.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Xufl'), grid on;
+xlim([0 0.7]) 
+
+%Gráfica Xufr
+figure(3),plot(T,Xufr,'-r.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Xufr'), grid on;
+xlim([0 0.7]) 
+
+%gráfica Xur
+figure(4),plot(T,Xur,'-r.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Xur'), grid on;
+xlim([0 1]) 
+
+%Suspended mass
+figure(5),plot(T,h,'-b.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Posición masa suspendida'), grid on;
+xlim([0 1.5]) 
+
+%Suspended mass speed
+figure(6),plot(t1,f,'-r.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Velocidad masa suspendida'), grid on;
+xlim([0 1.5])
+
+%Suspended mass acceleration
+figure(7),plot(t2,O,'-k.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Aceleración masa suspendida'), grid on;
+xlim([0 1.5])  
+
+%BETA
+figure(8),plot(T,BETA,'-c.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Angulo beta'), grid on;
+xlim([0 1.5]) 
+
+%PHI
+figure(9),plot(T,PHI,'-c.', 'MarkerSize', 1, 'LineWidth', 1.5), title('PHI'), grid on;
+xlim([0 1]) 
+
+for i=1:10001
+Vfl(i)=-h(i)+a*sin(BETA(i))+T2*sin(PHI(i))+Xufl(i);
+
+Vflsl(i)=Vfl(i); 
+
+%if Vfl(i)>0.1; %limits for compression and traction
+ %   Vfl(i)=0.1;
+end       
+
+figure(10),plot(T,Vfl,'-c.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Vfl'), grid on;
+xlim([0 0.7]) 
+
+for i=2 : 10000
+Vfld(i)=(Vfl(i+1)-Vfl(i-1))/(2*Tstep);
+end
+figure(11),plot(t1,Vfld,'-c.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Vfld'), grid on;
+xlim([0 0.7])
+
+for i=1:10001
+Vfr(i)=-h(i)+a*sin(BETA(i))-T2*sin(PHI(i))+Xufr(i);
+
+Vfrsl(i)=Vfr(i);
+
+%if Vfr(i)>0.1;  %limits for compression and traction
+  %  Vfr(i)=0.1;
+end      
+
+figure(12),plot(T,Vfr,'-c.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Vfr'), grid on;
+xlim([0 0.7]) 
+
+for i=2 : 10000
+Vfrd(i)=(Vfr(i+1)-Vfr(i-1))/(2*Tstep);
+end
+figure(13),plot(t1,Vfrd,'-c.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Vfrd'), grid on;
+xlim([0 0.7])
+
+for i=1:10001
+Vr(i)=-h(i)-b*sin(BETA(i))+Xur(i);
+
+Vrsl(i)=Vr(i);
+
+%if Vr(i)>0.1;  %limits for compression and traction
+ %   Vr(i)=0.1;
+end       
+
+figure(14),plot(T,Vr,'-c.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Vr'), grid on;
+xlim([0 1.5]) 
+
+for i=2 : 10000
+Vrd(i)=(Vr(i+1)-Vr(i-1))/(2*Tstep);
+end
+figure(15),plot(t1,Vrd,'-c.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Vrd'), grid on;
+xlim([0 1.5])
+
+%Nfl
+for i=1:10000
+Nfl(i)=(M*gravedad*b)/(2*l)+Ksfl*Vfl(i)+Csfl*Vfld(i);
+end
+figure(16),plot(t1,Nfl,'-c.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Nfl'), grid on;
+xlim([0 0.7])
+
+%Nfr
+for i=1:10000
+Nfr(i)=(M*gravedad*b)/(2*l)+Ksfr*Vfr(i)+Csfr*Vfrd(i);
+end
+figure(17),plot(t1,Nfr,'-c.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Nfr'), grid on;
+xlim([0 0.8])
+
+%Nr
+for i=1:10000
+Nr(i)=(M*gravedad*a)/l+Ksr*Vr(i)+Csr*Vrd(i);
+end
+figure(18),plot(t1,Nr,'-c.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Nr'), grid on;
+xlim([0 1.5])
+
+%Rfl, Rfr, Rr
+Rfl=ur*Nfl;
+Rfr=ur*Nfr;
+Rr=ur*Nr;
+
+%Fx, Fy, Fz
+Fx=((Tfl+Tfr)/rw-Rfl-Rfr)*cos(delta)-Rr+Tr/rw-(Lfl+Lfr)*sin(delta);
+Fy=-(((Tfl+Tfr)/rw-Rfl-Rfr)*sin(delta)+(Lfl+Lfr)*cos(delta)+Lr);
+Fz=-M*gravedad+(Nfl+Nfr+Nr);
+
+for i=1:10000
+FZ(i)=Fz(i)*(cos(BETA(i)));
+end
+
+%My
+My=-(Nfl+Nfr)*a+Nr*b;
+
+wyderivada=My/Iy; %N*m/(kg*m2) = N/(kg*m)
+
+for i=2 : 10000
+wy(i)=(BETA(i+1)-BETA(i-1))/(2*Tstep);
+end
+
+%Simpson derivate
+for i=2 : 9999
+wy2(i)=Tstep/3*(wyderivada(i-1)+4*wyderivada(i)+wyderivada(i+1));
+end
+wy2(1,10000)=0;
+
+for i=1:9999
+wy3(i)=Tstep*(wyderivada(i+1)+wyderivada(i))/2;
+end
+wy3(1,10000)=0;
+
+
+Aceleracion=FZ/M+wy*v; % derivada de BETA
+Aceleracion2=FZ/M+wy2*v; %Simpson
+Aceleracion3=FZ/M+wy3*v; %Trapecio
+
+for i=2:9999
+velocidad(i)=(Aceleracion(i+1)-Aceleracion(i-1))/(2*Tstep);
+end
+
+
+figure(19),plot(t1,Aceleracion,'-k.', 'MarkerSize', 1, 'LineWidth', 1.5),title('Aceleración masa suspendida - Modelo propio (Negro) - Modelo 1 (Rojo)'), grid on; grid on;
+xlim([0 1])
+hold on;
+plot(t2,O,'-r.', 'MarkerSize', 1, 'LineWidth', 1.5), grid on;
+xlabel('Tiempo [s]')
+ylabel('Aceleración [m/s^2]')
+%hold on;
+%plot(t1,Aceleracion3,'-k.', 'MarkerSize', 1, 'LineWidth', 1.5), title('Aceleración masa suspendida - Modelo propio (Negro) - Modelo 1 (Rojo)'), grid on;
+%xlim([0 1])
+
+figure(20),plot(t2,velocidad,'-k.', 'MarkerSize', 1, 'LineWidth', 1.5), grid on;
+xlim([0 1])
+
