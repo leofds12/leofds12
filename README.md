@@ -1,3 +1,4 @@
-<h2 align="center"> Hi, my name is Leonardo Ferreira da Silva, Engineer and Data Scientist from Argentina. </h2>
+<h2 align="center"> Leonardo Ferreira da Silva - Data Science Professor at Coderhouse - Engineer - Researcher. </h2>
+<h3 align="center"> Python - SQL - Scikit Learn. </h3>
 
-####     On my GitHub repository you can find some projects I've been working on. There are some of them in Python and others in MatLab.   
+####     On this repository there are some of the projects I've been working on. 
